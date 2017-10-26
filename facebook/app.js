@@ -23,6 +23,7 @@ const conversation = new Conversation({
 const workspace = '3497d50f-361d-4275-8301-b661be5d07e6';
 
 app.get('/', function (req, res) {
+  console.log('Home accessed');
   res.header('Content-type', 'text/html');
   return res.end('<h1>Hello, Secure World!</h1>');
 });
@@ -68,7 +69,7 @@ app.post('/webhook', function (req, res) {
 function receivedMessage(event, res) {
   console.log("Received message for user %d and page %d at %d with message:",
     event.sender.id, event.recipient.id, event.timestamp);
-  console.log(JSON.stringify(message));
+  console.log(JSON.stringify(event.message));
 
   if (messageText) {
     const payload = {
