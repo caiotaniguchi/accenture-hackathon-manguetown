@@ -4,7 +4,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const rp = require('request-promise');
 const Promise = require('bluebird');
-const Conversation = Promise.promisifyAll(require('watson-developer-cloud/conversation/v1'));
+const Conversation = require('watson-developer-cloud/conversation/v1');
 
 const app = express();
 
@@ -21,6 +21,8 @@ const conversation = new Conversation({
   'version_date': '2017-05-26'
 });
 const workspace = '3497d50f-361d-4275-8301-b661be5d07e6';
+conversation.message = Promise.promisify(conversation.message);
+
 
 app.get('/', function (req, res) {
   console.log('Home accessed');
