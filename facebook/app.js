@@ -11,6 +11,21 @@ app.use(bodyParser.json());
 
 const PAGE_ACCESS_TOKEN = 'EAABZCK5heo28BALBZCypTaqScyvM4w43LAV5q0bZA9pKOsa9vhlqsQjIIVcHeQymAMiYdWE4ohB7qWX1sVw91YF3ViTKcHS0RHN20EQbvS5ZCtTQal7D4Wq2CWk69454bbEq6irAeuqQ2OnALmMuVqZAvKQR4t1ZBNF46HNZAclxAZDZD'
 
+var Conversation = require('watson-developer-cloud/conversation/v1'); // watson sdk
+
+// Create the service wrapper
+var conversation = new Conversation({
+  // If unspecified here, the CONVERSATION_USERNAME and CONVERSATION_PASSWORD env properties will be checked
+  // After that, the SDK will fall back to the bluemix-provided VCAP_SERVICES environment property
+  'username': "e8433256-cf34-403a-9ab8-99a48ef64425",
+  'password': "IDHSjCBzvNsY",
+  'version_date': '2017-05-26'
+});
+
+// Endpoint to be call from the client side
+  var workspace = '3497d50f-361d-4275-8301-b661be5d07e6';
+
+
 //https.createServer({
 //  key: fs.readFileSync('key.pem'),
 //  cert: fs.readFileSync('cert.pem')
@@ -81,19 +96,23 @@ function receivedMessage(event) {
   var messageAttachments = message.attachments;
 
   if (messageText) {
+    var payload = {
+      workspace_id: workspace,
+      context: {
+        done: true,
+        total: "@sys-currency",
+        result: true
+      },
+      input: messageText
+    };
 
-    // If we receive a text message, check to see if it matches a keyword
-    // and send back the example. Otherwise, just echo the text we received.
-    switch (messageText) {
-      case 'generic':
-        sendGenericMessage(senderID);
-        break;
-
-      default:
-        sendTextMessage(senderID, messageText);
-    }
-  } else if (messageAttachments) {
-    sendTextMessage(senderID, "Message with attachment received");
+    // Send the input to the conversation service
+    conversation.message(payload, function(err, data) {
+      if (err) {
+        return res.status(err.code || 500).json(err);
+      }
+      return sendTextMessage(recipientId, data.output.text.values[0])
+    });
   }
 }
 
