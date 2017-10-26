@@ -71,7 +71,7 @@ function receivedMessage(event, res) {
     event.sender.id, event.recipient.id, event.timestamp);
   console.log(JSON.stringify(event.message));
 
-  if (messageText) {
+  if (event.message.text) {
     const payload = {
       workspace_id: workspace,
       context: {
