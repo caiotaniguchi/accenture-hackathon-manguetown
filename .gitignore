@@ -1,4 +1,7 @@
 *.csv
+
 *.xlsx
+
 *.xls
-*.txt
+
+*.data*
