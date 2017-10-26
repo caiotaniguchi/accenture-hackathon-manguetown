@@ -81,10 +81,11 @@ function receivedMessage(event, res) {
         total: "@sys-currency",
         result: true
       },
-      input: event.message.text
+      input: { text: event.message.text }
     };
 
     return conversation.message(payload).then(data => {
+      console.log(data);
       return sendTextMessage(event.recipient.id, data.output.text.values[0])
     }).catch((err) => {
       return res.status(err.code || 500).json(err);
