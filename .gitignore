@@ -5,3 +5,5 @@
 *.xls
 
 *.data*
+
+node_modules/
