@@ -2,7 +2,9 @@ const fs = require('fs')
 const http = require('http')
 const express = require('express')
 const bodyParser = require('body-parser')
-const request = require('request')
+const rp = require('request-promise');
+const Promise = require('bluebird');
+const Conversation = Promise.promisifyAll(require('watson-developer-cloud/conversation/v1'));
 
 const app = express();
 
@@ -13,7 +15,6 @@ http.createServer(app).listen(8000);
 
 const PAGE_ACCESS_TOKEN = 'EAABZCK5heo28BALBZCypTaqScyvM4w43LAV5q0bZA9pKOsa9vhlqsQjIIVcHeQymAMiYdWE4ohB7qWX1sVw91YF3ViTKcHS0RHN20EQbvS5ZCtTQal7D4Wq2CWk69454bbEq6irAeuqQ2OnALmMuVqZAvKQR4t1ZBNF46HNZAclxAZDZD'
 
-const Conversation = require('watson-developer-cloud/conversation/v1');
 const conversation = new Conversation({
   'username': "e8433256-cf34-403a-9ab8-99a48ef64425",
   'password': "IDHSjCBzvNsY",
@@ -39,36 +40,35 @@ app.get('/webhook', function(req, res) {
 
 app.post('/webhook', function (req, res) {
   const data = req.body;
+  console.log('Request received');
   if (data.object === 'page') {
+    console.log('App found');
     data.entry.forEach(function(entry) {
       const pageID = entry.id;
       const timeOfEvent = entry.time;
 
+      processedMessages = []
+
       entry.messaging.forEach(function(event) {
+        console.log('Message');
         if (event.message) {
-          receivedMessage(event);
+          processedMessages.append(receivedMessage(event, res));
         } else {
           console.log("Webhook received unknown event: ", event);
         }
       });
     });
-    res.sendStatus(200);
+    return Promise.all(processedMessages).then(() => {
+      res.sendStatus(200);
+    });
   }
 });
 
 
-function receivedMessage(event) {
-  const senderID = event.sender.id;
-  const recipientID = event.recipient.id;
-  const timeOfMessage = event.timestamp;
-  const message = event.message;
-
+function receivedMessage(event, res) {
   console.log("Received message for user %d and page %d at %d with message:",
-    senderID, recipientID, timeOfMessage);
+    event.sender.id, event.recipient.id, event.timestamp);
   console.log(JSON.stringify(message));
-
-  const messageId = message.mid;
-  const messageText = message.text;
 
   if (messageText) {
     const payload = {
@@ -78,48 +78,35 @@ function receivedMessage(event) {
         total: "@sys-currency",
         result: true
       },
-      input: messageText
+      input: event.message.text
     };
 
-    conversation.message(payload, function(err, data) {
-      if (err) {
-        return res.status(err.code || 500).json(err);
-      }
-      return sendTextMessage(recipientId, data.output.text.values[0])
+    return conversation.message(payload).then(data => {
+      return sendTextMessage(event.recipient.id, data.output.text.values[0])
+    }).catch((err) => {
+      return res.status(err.code || 500).json(err);
     });
   }
 }
 
 function sendTextMessage(recipientId, messageText) {
-  const messageData = {
-    recipient: {
-      id: recipientId
-    },
-    message: {
-      text: messageText
-    }
-  };
-  callSendAPI(messageData);
-}
-
-function callSendAPI(messageData) {
-  request({
+  return rp({
     uri: 'https://graph.facebook.com/v2.6/me/messages',
     qs: { access_token: PAGE_ACCESS_TOKEN },
     method: 'POST',
-    json: messageData
-
-  }, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
-      const recipientId = body.recipient_id;
-      const messageId = body.message_id;
-
-      console.log("Successfully sent generic message with id %s to recipient %s",
-        messageId, recipientId);
-    } else {
-      console.error("Unable to send message.");
-      console.error(response);
-      console.error(error);
+    json: {
+      recipient: {
+        id: recipientId
+      },
+      message: {
+        text: messageText
+      }
     }
+  }).then((res) => {
+    console.log("Successfully sent generic message with id %s to recipient %s",
+      res.body.message_id, res.body.recipient_id);
+  }).catch((err) => {
+    console.error("Unable to send message.");
+    console.error(err);
   });
-}
+};
