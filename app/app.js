@@ -56,7 +56,7 @@ bot.on('message', (msg) => {
           const additionalCredit = data.context.total;
           // chamar o modelo
           // data.context.result = model_result(chatId, additionalCredit);
-          return exec('docker exec 24d3b32b935c python transaction_approval_service.py')
+          return exec('docker exec ds python transaction_approval_service.py')
             .then((result) => {
               payload.context = data.context;
               payload.context.result = result.stdout.trim().toLowerCase();
@@ -77,7 +77,7 @@ bot.on('message', (msg) => {
                       })
                     };
                   }
-                  
+
                   return bot.sendMessage(chatId, data.output.text[0], options);
                 });
               });
