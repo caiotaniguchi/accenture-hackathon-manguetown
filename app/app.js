@@ -2,6 +2,7 @@ const Conversation = require('watson-developer-cloud/conversation/v1');
 const TelegramBot = require('node-telegram-bot-api');
 const Promise = require('bluebird');
 const mongoose = require('mongoose');
+const exec = require('child-process-promise').exec;
 
 mongoose.Promise = Promise;
 mongoose.connect('mongodb://127.0.0.1/manguetown', {
@@ -55,34 +56,42 @@ bot.on('message', (msg) => {
           const additionalCredit = data.context.total;
           // chamar o modelo
           // data.context.result = model_result(chatId, additionalCredit);
-          payload.context = data.context;
-          payload.context.result = "true";
-          console.log(JSON.stringify(payload));
+          return exec('docker exec 24d3b32b935c python transaction_approval_service.py')
+            .then((result) => {
+              payload.context = data.context;
+              payload.context.result = result.stdout.trim().toLowerCase();
+              console.log(JSON.stringify(payload));
 
-          return conversation.message(payload).then(data => {
-            chatInstance.watsonContext = data.context;
+              return conversation.message(payload).then(data => {
+                chatInstance.watsonContext = data.context;
 
-            return chatInstance.save().then(() => {
-              const options = {
-                reply_markup: JSON.stringify({
-                  inline_keyboard: [
-                    [{ text: 'Yes', callback_data: 'yes' }],
-                    [{ text: 'No', callback_data: 'no' }],
-                  ]
-                })
-              };
-              return bot.sendMessage(chatId, data.output.text[0], options);
-
-              // bot.sendMessage(chatId, data.output.text[0]);
+                return chatInstance.save().then(() => {
+                  let options = {};
+                  if (payload.context.result === 'true') {
+                    options = {
+                      reply_markup: JSON.stringify({
+                        inline_keyboard: [
+                          [{ text: 'Yes', callback_data: 'yes' }],
+                          [{ text: 'No', callback_data: 'no' }],
+                        ]
+                      })
+                    };
+                  }
+                  
+                  return bot.sendMessage(chatId, data.output.text[0], options);
+                });
+              });
+            })
+            .catch(function (err) {
+                console.error('ERROR: ', err);
             });
-          });
         }
       });
     });
   });
 });
 
-bot.on('callback_query', function (res) {
+bot.on('callback_query', (res) => {
   const payload = {
     workspace_id: '3497d50f-361d-4275-8301-b661be5d07e6',
     input: { text: res.data },
