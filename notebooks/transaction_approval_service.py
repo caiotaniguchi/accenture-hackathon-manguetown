@@ -39,7 +39,8 @@ def main(argv):
    pattern = recovered_data[np.random.randint(len(recovered_data),size=1),:]
    pos_prob_nd = loaded_model_nd.predict(pattern)
    pos_prob_d = loaded_model_d.predict(pattern)
-   print(pos_prob_nd > pos_prob_d)
+   result = pos_prob_nd > pos_prob_d
+   print(result[0])
     
 if __name__ == "__main__":
    main(sys.argv[1:])
