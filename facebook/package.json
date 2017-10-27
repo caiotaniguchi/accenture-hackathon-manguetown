@@ -13,6 +13,7 @@
     "es6-promise": "^4.1.1",
     "express": "^4.16.2",
     "isomorphic-fetch": "^2.2.1",
-    "request": "^2.83.0"
+    "request": "^2.83.0",
+    "watson-developer-cloud": "^2.41.1"
   }
 }
